@@ -50,6 +50,18 @@ variable "github_repo" {
   default     = "abdulk1/claude-apps-gateway-on-aws"
 }
 
+variable "github_sub_pattern" {
+  description = <<-EOT
+    OIDC `sub` claim pattern to trust (AWS requires a sub or job_workflow_ref
+    condition on GitHub OIDC roles). This org customizes the subject claim to
+    embed numeric owner/repo IDs, so it is NOT the plain repo:OWNER/REPO:* form
+    -- it looks like repo:owner@<owner_id>/repo@<repo_id>:<ref>. Verified via
+    CloudTrail. The trailing wildcard covers all refs/PRs for this repo.
+  EOT
+  type        = string
+  default     = "repo:abdulk1@27826168/claude-apps-gateway-on-aws@1308230647:*"
+}
+
 variable "role_name" {
   type    = string
   default = "claude-gateway-ci-plan"
@@ -82,14 +94,20 @@ data "aws_iam_policy_document" "trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Only this repo's PR and main-branch runs -- not forks, not other refs.
+    # AWS requires a sub (or job_workflow_ref) condition. This org customizes
+    # the sub claim to embed owner/repo IDs, so match that exact pattern
+    # (see var.github_sub_pattern).
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.github_repo}:pull_request",
-        "repo:${var.github_repo}:ref:refs/heads/main",
-      ]
+      values   = [var.github_sub_pattern]
+    }
+    # Belt-and-suspenders: also require the stable `repository` claim, immune to
+    # the sub-claim customization.
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:repository"
+      values   = [var.github_repo]
     }
   }
 }
