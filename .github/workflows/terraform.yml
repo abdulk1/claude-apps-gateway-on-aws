@@ -72,4 +72,6 @@ jobs:
           # TF_VAR_oidc_client_secret (secret OIDC_CLIENT_SECRET) here.
         run: |
           terraform init -input=false
-          terraform plan -input=false -no-color
+          # -lock=false: the plan role is read-only and can't write the S3
+          # lock object; a plan doesn't mutate state, so skipping the lock is safe.
+          terraform plan -input=false -no-color -lock=false
