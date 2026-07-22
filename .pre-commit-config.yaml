@@ -1,0 +1,28 @@
+# Pre-commit hooks: fast, local IaC guardrails that run before every commit.
+# Install once:  pip install pre-commit && pre-commit install
+# Run on demand: pre-commit run --all-files
+#
+# These are the same checks CI runs (.github/workflows/terraform.yml), so an
+# agent gets immediate feedback instead of waiting for a PR to go red.
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+      - id: terraform_checkov
+        args:
+          - --args=--quiet
+          - --args=--skip-check CKV_AWS_338 # log retention: intentionally short for a sample
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: detect-private-key
+        exclude: ^modules/vpn/ # the VPN module legitimately generates keys via the tls provider

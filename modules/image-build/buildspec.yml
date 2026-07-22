@@ -1,0 +1,39 @@
+version: 0.2
+
+# Builds the gateway (and optionally the admin console) images on an x86_64
+# CodeBuild host and pushes them to ECR. Driven by environment variables set
+# on the CodeBuild project: AWS_ACCOUNT_ID, AWS_DEFAULT_REGION (provided by
+# CodeBuild), IMAGE_TAG, GATEWAY_REPO_URI, ADMIN_CONSOLE_REPO_URI,
+# BUILD_ADMIN_CONSOLE. The S3 source archive is extracted at the build root,
+# so gateway/ and admin-console/ are directories here.
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR in ${AWS_DEFAULT_REGION}..."
+      - ECR_HOST="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+      - aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${ECR_HOST}"
+  build:
+    commands:
+      - echo "Building gateway image ${GATEWAY_REPO_URI}:${IMAGE_TAG}"
+      - docker build -t "${GATEWAY_REPO_URI}:${IMAGE_TAG}" ./gateway
+      - |
+        if [ "${BUILD_ADMIN_CONSOLE}" = "true" ]; then
+          if [ ! -f ./admin-console/Dockerfile ]; then
+            echo "ERROR: BUILD_ADMIN_CONSOLE=true but ./admin-console/Dockerfile is missing."
+            echo "Run scripts/fetch-admin-console-source.sh before applying, or set enable_admin_console = false."
+            exit 1
+          fi
+          echo "Building admin console image ${ADMIN_CONSOLE_REPO_URI}:${IMAGE_TAG}"
+          docker build -t "${ADMIN_CONSOLE_REPO_URI}:${IMAGE_TAG}" ./admin-console
+        fi
+  post_build:
+    commands:
+      - echo "Pushing gateway image..."
+      - docker push "${GATEWAY_REPO_URI}:${IMAGE_TAG}"
+      - |
+        if [ "${BUILD_ADMIN_CONSOLE}" = "true" ]; then
+          echo "Pushing admin console image..."
+          docker push "${ADMIN_CONSOLE_REPO_URI}:${IMAGE_TAG}"
+        fi
+      - echo "Done."

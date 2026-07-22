@@ -1,0 +1,10 @@
+{
+  "$comment": "Project-scoped MCP servers for agent-driven work on this repo. Committed so every teammate/agent gets the same toolbelt. See docs/agent-driven-development.md. This file ships only the `terraform` server (docker, general mode -- no HCP/TFE account needed). AWS docs/skills come from the remote AWS Knowledge MCP provided by the `deploy-on-aws` Claude Code plugin in this setup; teammates who do NOT run that plugin should re-add a remote `aws-knowledge` HTTP entry (url https://knowledge-mcp.global.api.aws). For AWS *actions*, use the AWS CLI with the SSO profile (see CLAUDE.md), not a local MCP execution server.",
+  "mcpServers": {
+    "terraform": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "hashicorp/terraform-mcp-server"],
+      "$comment": "HashiCorp's official Terraform MCP server (Registry lookups, module/provider docs, policy). General mode -- no HCP Terraform / Terraform Enterprise account required, so no TFE_TOKEN/TFE_ADDRESS set. Add '-e TFE_TOKEN=... -e TFE_ADDRESS=...' to args only if you later adopt HCP Terraform / TFE."
+    }
+  }
+}

@@ -1,0 +1,45 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+# See docs/01-prerequisites.md. The default identity provider is a Cognito user
+# pool federated to IAM Identity Center via SAML (a two-phase apply).
+
+aws_region  = "us-east-1"
+name_prefix = "claude-gateway"
+
+# --- Identity provider (default: Cognito -> IAM Identity Center over SAML) ---
+enable_cognito_idp = true
+
+# The admin group name. Members get spend-limit + model-access rights. Must
+# match the group name Identity Center emits via the SAML groups attribute.
+admin_okta_group_name = "claude-gateway-admins"
+
+# PHASE 1: leave this null, apply, then create the Identity Center SAML app
+#          using the identity_center_saml_acs_url / _entity_id outputs.
+# PHASE 2: set this to the Identity Center app's SAML metadata URL, apply again.
+identity_center_saml_metadata_url = null
+
+# Name of the group-membership attribute in the Identity Center SAML assertion
+# (whatever you configure the app to emit). Mapped to the gateway's `groups`
+# claim. See the "Groups attribute caveat" in docs/01-prerequisites.md.
+# saml_groups_attribute = "groups"
+# saml_email_attribute  = "email"
+
+# Optional: pin the Cognito hosted-UI domain prefix (must be globally unique).
+# cognito_domain_prefix = "claude-gateway-acme"
+
+# --- External OIDC IdP alternative (only if enable_cognito_idp = false) ---
+# enable_cognito_idp = false
+# oidc_issuer    = "https://your-org.okta.com"
+# oidc_client_id = "0oaXXXXXXXXXXXXXXXXX"
+# provide the secret via: export TF_VAR_oidc_client_secret='...'
+
+# --- Model catalog (initial; change later in the admin console) ---
+available_models = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"]
+
+# --- Feature toggles ---
+enable_admin_console = true # run scripts/fetch-admin-console-source.sh first
+enable_vpn           = true
+
+tags = {
+  Owner = "platform-team"
+  Env   = "shared"
+}

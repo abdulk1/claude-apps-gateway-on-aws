@@ -1,0 +1,71 @@
+name: terraform
+
+# Agent + CI guardrails: format, validate, lint, and security-scan on every PR.
+# Plan runs only when AWS OIDC credentials are configured (see below), so the
+# repo is useful even before you wire up cloud access.
+
+on:
+  pull_request:
+    paths: ["**.tf", "**.tftpl", ".github/workflows/terraform.yml"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write # for AWS OIDC, when configured
+  pull-requests: write
+
+jobs:
+  static:
+    name: fmt / validate / lint / scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.6"
+
+      - name: terraform fmt
+        run: terraform fmt -recursive -check -diff
+
+      - name: terraform validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - uses: terraform-linters/setup-tflint@v4
+      - name: tflint
+        run: |
+          tflint --init
+          tflint --recursive
+
+      - name: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          quiet: true
+          soft_fail: true # report findings without blocking the sample; tighten for production
+
+  plan:
+    name: plan (requires AWS OIDC)
+    runs-on: ubuntu-latest
+    needs: static
+    if: vars.AWS_PLAN_ROLE_ARN != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.6"
+      - name: terraform plan
+        env:
+          TF_VAR_oidc_issuer: ${{ vars.OIDC_ISSUER }}
+          TF_VAR_oidc_client_id: ${{ vars.OIDC_CLIENT_ID }}
+          TF_VAR_oidc_client_secret: ${{ secrets.OIDC_CLIENT_SECRET }}
+        run: |
+          terraform init -input=false
+          terraform plan -input=false -no-color

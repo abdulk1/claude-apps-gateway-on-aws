@@ -1,0 +1,40 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Terraform variable / secret files (never commit real values)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Module build artifacts (CodeBuild source zip, Lambda zips, etc.)
+**/.build/
+
+# Python bytecode (e.g. from local Lambda syntax checks)
+__pycache__/
+*.pyc
+
+# Generated VPN client profile (contains a private key)
+*.ovpn
+
+# Vendored application source (fetch with scripts/fetch-admin-console-source.sh)
+app/admin-console/
+
+# Local research / scratch
+.context/research/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
