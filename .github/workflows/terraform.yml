@@ -36,9 +36,11 @@ jobs:
 
       - uses: terraform-linters/setup-tflint@v4
       - name: tflint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # avoids plugin-download rate limits
         run: |
           tflint --init
-          tflint --recursive
+          tflint --recursive --minimum-failure-severity=error
 
       - name: checkov
         uses: bridgecrewio/checkov-action@v12
