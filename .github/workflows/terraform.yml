@@ -63,9 +63,11 @@ jobs:
           terraform_version: "1.14.6"
       - name: terraform plan
         env:
-          TF_VAR_oidc_issuer: ${{ vars.OIDC_ISSUER }}
-          TF_VAR_oidc_client_id: ${{ vars.OIDC_CLIENT_ID }}
-          TF_VAR_oidc_client_secret: ${{ secrets.OIDC_CLIENT_SECRET }}
+          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+          # Default IdP is Cognito (enable_cognito_idp = true), which needs no
+          # OIDC vars. For an external OIDC IdP, set enable_cognito_idp = false
+          # and add TF_VAR_oidc_issuer / _client_id (repo vars) and
+          # TF_VAR_oidc_client_secret (secret OIDC_CLIENT_SECRET) here.
         run: |
           terraform init -input=false
           terraform plan -input=false -no-color
